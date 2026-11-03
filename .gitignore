@@ -1,0 +1,8 @@
+# never commit Nexon's files, logs or downloads
+*.exe
+*.asar
+*.asar.orig
+*.log
+*.pcap
+*.pcapng
+*.sym
