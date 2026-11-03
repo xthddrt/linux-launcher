@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Nexon Launcher under Wine 10+ (prefix ~/.wine-nexon). Installed to ~/.local/bin by nexon/install.sh.
+#
+#  * Starts nexon_client.exe (the Electron UI) directly through `wine start`
+#    with --disable-blink-features=TextDecoratingBox. Without it, Electron 22's
+#    Blink crashes while painting the login page (NGInlinePaintContext::ScopedLineBox)
+#    and the window stays blank. (app.asar is also patched to add this flag, but a
+#    Nexon update can replace app.asar; passing it here keeps the fix either way.)
+#  * nxl:// links (browser-login hand-off, "Play" links) are passed on the way
+#    nexon_launcher.exe would: as --nxl=nxl://...
+#
+# Usage: nexon-launcher            start the launcher
+#        nexon-launcher nxl://...  hand an nxl:// link to the (running) launcher
+#        nexon-launcher --update   run Nexon's updater once, re-apply the patch, start
+export WINEPREFIX="${WINEPREFIX:-$HOME/.wine-nexon}"
+export WINEDEBUG="${WINEDEBUG:--all}"
+DIR='C:\Program Files (x86)\Nexon\Nexon Launcher'
+APP="$DIR\\bin\\front_end"
+
+if [ "${1:-}" = "--update" ]; then
+  wineserver -k 2>/dev/null; sleep 1
+  wine start /d "$DIR" nexon_launcher.exe
+  echo "Waiting for Nexon's updater to finish (up to 3 min)..."
+  for _ in $(seq 1 180); do
+    pgrep -f '^C:.*\\nexon_client\.exe' >/dev/null && break
+    sleep 1
+  done
+  sleep 5; wineserver -k; sleep 1
+  "$HOME/.local/bin/nexon-launcher-patch" || true
+  shift
+fi
+
+args=(--disable-blink-features=TextDecoratingBox)
+for a in "$@"; do
+  case "$a" in
+    nxl://*) args+=("--nxl=$a") ;;
+    *)       args+=("$a") ;;
+  esac
+done
+
+exec wine start /d "$DIR\\bin\\nexon_client" nexon_client.exe "${args[@]}" "$APP"
