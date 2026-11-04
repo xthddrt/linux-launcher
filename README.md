@@ -69,7 +69,8 @@ docs/
 | Problem | Cause | Fix |
 |---|---|---|
 | `Fatal Python error: init_sys_streams` when starting `nexon_launcher.exe` | Wine handed the Python launcher invalid stdio handles | Start programs with `wine start` |
-| Graphics errors / DXVK fails (`khrLoadStoreOpNone`) | DXVK 3.x needs Vulkan features Wine 9.0 doesn't pass through | DXVK **2.3**; launcher UI uses Wine's built-in Direct3D |
+| Graphics errors / DXVK fails (`khrLoadStoreOpNone`) | DXVK 3.x needs Vulkan features Wine 9.0 doesn't pass through | DXVK **2.3** for games |
+| Black box at the top-left of the screen (launcher size, or 800x300 when you press Play) | Wine leaves the launcher's GPU drawing surfaces on screen under GNOME/XWayland | Direct3D off for `nexon_client.exe` only, so the launcher draws in software |
 | Blank window, crash at `03B34D01`, renderer silently dies | Blink bug in `NGInlinePaintContext::ScopedLineBox` (text-decoration painting) hit by the login page | `--disable-blink-features=TextDecoratingBox` |
 | Many small crashes, `wmic csproduct` errors, cross-process drawing failures | Ubuntu's Wine 9.0 is too old | WineHQ **11.0** stable |
 | Promotion pop-up that can't be closed | Front end opens a `cross_promotion` window | Patched out in `app.asar` |

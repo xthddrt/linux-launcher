@@ -39,7 +39,8 @@ the account login from `www.nexon.com` in an iframe. On Windows the main process
   (`WINEDEBUG=+loaddll` still showed `d3d11.dll ... native`).
 - **Cause:** winetricks writes global overrides as `*d3d11=native`. The `*` form (any path)
   beats a plain `d3d11` entry.
-- **Fix:** use `*d3d11`, `*dxgi`, `*d3d10core`, `*d3d9` = `builtin` in the AppDefaults key.
+- **Fix:** use the `*d3d11`, `*dxgi`, `*d3d10core`, `*d3d9` names in the AppDefaults key
+  (now set to empty, see #8).
 
 ## 4. Blank window on Wine 9.0 (cross-process child windows)
 
@@ -81,6 +82,26 @@ the account login from `www.nexon.com` in an iframe. On Windows the main process
 - The front end asks the main process to open a `cross_promotion` window (802x526). The patch
   renames that `case` so `open_window` logs `window name is not valid: cross_promotion` and
   returns.
+
+## 8. Black box at the top-left of the screen
+
+- **Symptom:** a black rectangle sits at the top-left corner while the launcher runs, the
+  size of the launcher (1024x720) or of its 800x300 "starting game" window, which appears
+  when you press Play. It stays after those windows close. Seen on GNOME Wayland (XWayland), Wine 11.
+- **Cause:** for GPU drawing, winex11 puts each window's Direct3D/GL output in a child
+  "client" window inside a 1x1 holder window at 0,0. When the launcher's windows close or
+  hide, those surfaces stay mapped and GNOME keeps drawing them at the corner.
+  `xwininfo -root -tree` shows them as unnamed `nexon_client.exe` windows at `+0+0`.
+  The game's own windows aren't involved: they are all unmapped or inside the game window.
+- **Not a fix:** unmapping the stale surface or cycling the holder only works until
+  the next window opens. Unmapping the holder also blanks the launcher.
+- **Fix:** disable Direct3D for `nexon_client.exe` only: set `*d3d11`, `*dxgi`, `*d3d10core`
+  and `*d3d9` to an empty value under `HKCU\Software\Wine\AppDefaults\nexon_client.exe\DllOverrides`
+  (`install.sh` step 3). Chromium then draws in software and creates no client surfaces.
+  It takes effect only after a full restart of the launcher (`wineserver -k`, then start it).
+  Games keep DXVK.
+- **Undo** (back to Wine's built-in Direct3D):
+  `for d in d3d11 dxgi d3d9 d3d10core; do WINEPREFIX=~/.wine-nexon wine reg add 'HKCU\Software\Wine\AppDefaults\nexon_client.exe\DllOverrides' /v "*$d" /d builtin /f; done`
 
 ## Debugging toolbox
 

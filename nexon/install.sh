@@ -7,7 +7,7 @@
 # ~/Downloads/NexonLauncherSetup.exe). Steps:
 #   1. Create a dedicated 64-bit prefix ~/.wine-nexon (Windows 10 mode)
 #   2. Install DXVK 2.3 (Direct3D -> Vulkan) for games
-#   3. Make the launcher UI itself (nexon_client.exe) use Wine's built-in Direct3D
+#   3. Turn Direct3D off for the launcher UI itself (nexon_client.exe)
 #   4. Run the Nexon installer (you click through it and accept Nexon's terms)
 #   5. Let the launcher's first-run update finish, then close it
 #   6. Patch app.asar (crash fix + no promotion pop-up)
@@ -36,11 +36,14 @@ step "2. DXVK 2.3"
 # set than Ubuntu's Wine 9.0 exposed; with WineHQ 11 newer DXVK may also work.)
 winetricks -q -f dxvk2030 >/dev/null
 
-step "3. Launcher UI (nexon_client.exe) uses Wine's built-in Direct3D"
+step "3. Launcher UI (nexon_client.exe) draws without Direct3D"
 K='HKCU\Software\Wine\AppDefaults\nexon_client.exe\DllOverrides'
+# An empty value disables the DLL, so Chromium draws in software. With GPU
+# drawing, Wine leaves a black box at the top-left of the screen (see
+# docs/TROUBLESHOOTING.md #8). Games are unaffected: they keep DXVK.
 # The '*' form is required: winetricks writes '*d3d11=native' globally, which
 # beats plain 'd3d11' entries.
-for d in d3d11 dxgi d3d10core d3d9; do wine reg add "$K" /v "*$d" /d builtin /f >/dev/null; done
+for d in d3d11 dxgi d3d10core d3d9; do wine reg add "$K" /v "*$d" /d "" /f >/dev/null; done
 
 step "4. Nexon installer"
 if [ -f "$P/bin/nexon_client/nexon_client.exe" ]; then
